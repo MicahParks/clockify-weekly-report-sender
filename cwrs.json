@@ -1,0 +1,9 @@
+{
+  "bodyStr": "Attached you will find the weekly report for {}.\n\n\nbeep boop.\nThis is an automated email. If you see anything wrong with it or would like to make a suggestion, please reply to it.",
+  "clockifyEmailStr": "myClockifyEmail@mailzzzz.com",
+  "clockifyPasswordStr": "myClockifyEmailPassword",
+  "fromEmailPasswordStr": "myBotEmailPassword",
+  "fromEmailStr": "myBotEmail@gmail.com",
+  "pdfAttachmentNameStr": "{} weekly report.pdf",
+  "toEmailStr": "myClientsEmail@clientBusiness.com"
+}

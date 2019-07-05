@@ -38,6 +38,16 @@ MAX_WAIT_SEC_INT = 5
 WEB_DRIVER_WAIT = None
 
 
+def date_str(dateStr: str) -> str:
+    """"
+    """
+    dateStrList = dateStr.split('_')
+    yearStr = dateStrList[2]
+    monthStr = dateStrList[0]
+    dayStr = dateStrList[1]
+    return yearStr + monthStr + dayStr
+
+
 def download_detailed_report(firefoxWebDriver: WebDriver) -> None:
     """
     """
@@ -86,8 +96,10 @@ def get_pdf_date_str(pdfPathStr: str) -> str:
     pdfDateStr = pdfPathStr.split('/')[-1]
     pdfDateStr = pdfDateStr.lstrip('clockify-report-')
     pdfDateStr = pdfDateStr.rstrip('.pdf')
-    pdfDateStr = pdfDateStr.replace('_', str())
-    pdfDateStr = pdfDateStr.replace('-to-', '-')
+    dateStrList = pdfDateStr.split('-to-')
+    startDateStr = date_str(dateStr=dateStrList[0])
+    endDateStr = date_str(dateStr=dateStrList[-1])
+    pdfDateStr = startDateStr + '-' + endDateStr
     return pdfDateStr
 
 
@@ -163,6 +175,6 @@ def web_driver_wait(cssSelectorStr: str, webDriver: WebDriver) -> None:
 
 
 if __name__ == '__main__':
-    with open('example.json') as IN_FILE:
+    with open('/cwrs.json') as IN_FILE:
         JSON_DICT = load(IN_FILE)
     main(jsonDict=JSON_DICT)

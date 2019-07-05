@@ -1,0 +1,8 @@
+version: '3'
+services:
+  cwrs:
+    command: 'python /cwrs.py'
+    image: micahparks/seleniumpython
+    volumes:
+      - ./cwrs.py:/cwrs.py
+      - ./cwrs.json:/cwrs.json
