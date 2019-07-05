@@ -140,9 +140,9 @@ def main(**kwargs) -> None:
     pdfPathStr = downloadDirPathStr + '/' + listdir(downloadDirPathStr)[-1]
     pdfDateStr = get_pdf_date_str(pdfPathStr=pdfPathStr)
     bodyStr = kwargs['bodyStr'].format(pdfDateStr)
-    pdfAttachmentNameStr = kwargs['pdfAttachmentNameStr'].format(pdfDateStr)
-    fromEmailStr = kwargs['fromEmailStr']
     fromEmailPasswordStr = kwargs['fromEmailPasswordStr']
+    fromEmailStr = kwargs['fromEmailStr']
+    pdfAttachmentNameStr = kwargs['pdfAttachmentNameStr'].format(pdfDateStr)
     toEmailStr = kwargs['toEmailStr']
     email_weekly_report(bodyStr=bodyStr, fromEmailStr=fromEmailStr, fromEmailPasswordStr=fromEmailPasswordStr,
                         pdfPathStr=pdfPathStr, toEmailStr=toEmailStr, pdfAttachmentNameStr=pdfAttachmentNameStr)
