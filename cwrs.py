@@ -126,7 +126,10 @@ def main(**kwargs) -> None:
     options.set_preference('pdfjs.disabled', True)
     firefoxWebDriver = webdriver.Firefox(options=options)
     urlStr = 'https://clockify.me/login'
-    login_to_clockify(emailStr='', firefoxWebDriver=firefoxWebDriver, passwordStr='', urlStr=urlStr)
+    clockifyEmailStr = kwargs['clockifyEmailStr']
+    clockifyPasswordStr = kwargs['clockifyPasswordStr']
+    login_to_clockify(emailStr=clockifyEmailStr, firefoxWebDriver=firefoxWebDriver, passwordStr=clockifyPasswordStr,
+                      urlStr=urlStr)
     WebDriverWait(firefoxWebDriver, MAX_WAIT_SEC_INT).until(expected_conditions.url_changes(urlStr))
     try:
         rmtree(downloadDirPathStr)
