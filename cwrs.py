@@ -64,7 +64,7 @@ def main() -> None:
     options.set_preference('browser.download.manager.showWhenStarting', False)
     options.set_preference('browser.download.dir', downloadDirPathStr)
     options.set_preference('browser.helperApps.neverAsk.saveToDisk', 'application/pdf')
-    # options.set_preference('pdfjs.disabled', True)
+    options.set_preference('pdfjs.disabled', True)
     firefoxWebDriver = webdriver.Firefox(options=options)
     urlStr = 'https://clockify.me/login'
     login_to_clockify(emailStr='', firefoxWebDriver=firefoxWebDriver, passwordStr='', urlStr=urlStr)
@@ -75,7 +75,7 @@ def main() -> None:
         pass
     mkdir(downloadDirPathStr)
     download_detailed_report(firefoxWebDriver=firefoxWebDriver)
-    while listdir(downloadDirPathStr) == 0:
+    while len(listdir(downloadDirPathStr)) == 0:
         sleep(.1)
     firefoxWebDriver.close()
     # Email thing here
