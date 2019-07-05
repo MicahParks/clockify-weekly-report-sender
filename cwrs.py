@@ -11,12 +11,19 @@ Target environment: python 3.7
 """
 
 # Start standard library imports.
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formatdate
 from os import getcwd, listdir, mkdir
+from os.path import basename
 from shutil import rmtree
+from smtplib import SMTP
 from time import sleep
 # End standard library imports.
 
 # Start third party imports.
+from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
@@ -24,7 +31,6 @@ from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
-from pyvirtualdisplay import Display
 # End third party imports.
 
 
@@ -32,13 +38,66 @@ MAX_WAIT_SEC_INT = 5
 WEB_DRIVER_WAIT = None
 
 
-def get_web_element(cssSelectorStr: str, webDriverObj: WebDriver) -> WebElement:
+def download_detailed_report(firefoxWebDriver: WebDriver) -> None:
     """
     """
-    web_driver_wait(cssSelectorStr=cssSelectorStr, webDriver=webDriverObj)
-    elementObj = webDriverObj.find_element_by_css_selector(cssSelectorStr)
-    webDriverObj.execute_script("arguments[0].scrollIntoView();", elementObj)
-    return elementObj
+    firefoxWebDriver.get('https://clockify.me/reports/detailed')
+    printIconCssSelector = 'span.report-actions__item:nth-child(3)'
+    get_web_element(cssSelectorStr=printIconCssSelector, webDriver=firefoxWebDriver).click()
+
+
+def email_weekly_report(bodyStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfPathStr: str, toEmailStr: str,
+                        emailHostAddress: str = 'smtp.gmail.com', pdfAttachmentNameStr: str = None,
+                        portInt: int = 587, subjectStr: str = 'Weekly Report (AUTOMATED)') -> None:
+    """
+    """
+    if pdfAttachmentNameStr is None:
+        pdfAttachmentNameStr = pdfPathStr.split('/')[-1]
+    mimeMultipart = MIMEMultipart()
+    mimeMultipart['From'] = fromEmailStr
+    mimeMultipart['To'] = toEmailStr
+    mimeMultipart['Date'] = formatdate(localtime=True)
+    mimeMultipart['Subject'] = subjectStr
+    mimeMultipart.attach(MIMEText(bodyStr))
+    with open(pdfPathStr, 'rb') as inFile:
+        pdfMimeApplication = MIMEApplication(inFile.read(), Name=pdfAttachmentNameStr)
+    pdfMimeApplication['Content-Disposition'] = 'attachment; filename="{}"'.format(pdfAttachmentNameStr)
+    mimeMultipart.attach(pdfMimeApplication)
+    try:
+        smtpSsl = SMTP(host=emailHostAddress, port=portInt)
+        smtpSsl.ehlo()
+        smtpSsl.starttls()
+        smtpSsl.ehlo()
+    except Exception as exceptionStr:
+        print('Failure to connect to "{}:{}".\nException: "{}".'.format(emailHostAddress, portInt, exceptionStr))
+        return
+    try:
+        smtpSsl.login(user=fromEmailStr, password=fromEmailPasswordStr)
+    except Exception as exceptionStr:
+        print('Failure to log into "{}" at "{}:{}"\nException: "{}".'.format(fromEmailStr, emailHostAddress, portInt,
+                                                                             exceptionStr))
+    smtpSsl.sendmail(fromEmailStr, toEmailStr, mimeMultipart.as_string())
+    smtpSsl.close()
+
+
+def get_pdf_date_str(pdfPathStr: str) -> str:
+    """"
+    """
+    pdfDateStr = pdfPathStr.split('/')[-1]
+    pdfDateStr = pdfDateStr.lstrip('clockify-report-')
+    pdfDateStr = pdfDateStr.rstrip('.pdf')
+    pdfDateStr = pdfDateStr.replace('_', str())
+    pdfDateStr = pdfDateStr.replace('-to-', '-')
+    return pdfDateStr
+
+
+def get_web_element(cssSelectorStr: str, webDriver: WebDriver) -> WebElement:
+    """
+    """
+    web_driver_wait(cssSelectorStr=cssSelectorStr, webDriver=webDriver)
+    element = webDriver.find_element_by_css_selector(cssSelectorStr)
+    webDriver.execute_script("arguments[0].scrollIntoView();", element)
+    return element
 
 
 def login_to_clockify(emailStr: str, firefoxWebDriver: WebDriver, passwordStr: str, urlStr: str) -> None:
@@ -46,12 +105,12 @@ def login_to_clockify(emailStr: str, firefoxWebDriver: WebDriver, passwordStr: s
     """
     firefoxWebDriver.get(urlStr)
     emailCssSelectorStr = '#email'
-    get_web_element(cssSelectorStr=emailCssSelectorStr, webDriverObj=firefoxWebDriver).send_keys(emailStr)
+    get_web_element(cssSelectorStr=emailCssSelectorStr, webDriver=firefoxWebDriver).send_keys(emailStr)
     passwordCssSelector = '#password'
-    get_web_element(cssSelectorStr=passwordCssSelector, webDriverObj=firefoxWebDriver).send_keys(passwordStr + '\ue007')
+    get_web_element(cssSelectorStr=passwordCssSelector, webDriver=firefoxWebDriver).send_keys(passwordStr + '\ue007')
 
 
-def main() -> None:
+def main(**kwargs) -> None:
     """
     The logic of the file.
     """
@@ -78,16 +137,16 @@ def main() -> None:
     while len(listdir(downloadDirPathStr)) == 0:
         sleep(.1)
     firefoxWebDriver.close()
-    # Email thing here
+    pdfPathStr = downloadDirPathStr + '/' + listdir(downloadDirPathStr)[-1]
+    pdfDateStr = get_pdf_date_str(pdfPathStr=pdfPathStr)
+    bodyStr = kwargs['bodyStr'].format(pdfDateStr)
+    pdfAttachmentNameStr = kwargs['pdfAttachmentNameStr'].format(pdfDateStr)
+    fromEmailStr = kwargs['fromEmailStr']
+    fromEmailPasswordStr = kwargs['fromEmailPasswordStr']
+    toEmailStr = kwargs['toEmailStr']
+    email_weekly_report(bodyStr=bodyStr, fromEmailStr=fromEmailStr, fromEmailPasswordStr=fromEmailPasswordStr,
+                        pdfPathStr=pdfPathStr, toEmailStr=toEmailStr, pdfAttachmentNameStr=pdfAttachmentNameStr)
     display.stop()
-
-
-def download_detailed_report(firefoxWebDriver: WebDriver) -> None:
-    """
-    """
-    firefoxWebDriver.get('https://clockify.me/reports/detailed')
-    printIconCssSelector = 'span.report-actions__item:nth-child(3)'
-    get_web_element(cssSelectorStr=printIconCssSelector, webDriverObj=firefoxWebDriver).click()
 
 
 def web_driver_wait(cssSelectorStr: str, webDriver: WebDriver) -> None:
