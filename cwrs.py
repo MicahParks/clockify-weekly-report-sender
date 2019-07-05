@@ -56,9 +56,9 @@ def download_detailed_report(firefoxWebDriver: WebDriver) -> None:
     get_web_element(cssSelectorStr=printIconCssSelector, webDriver=firefoxWebDriver).click()
 
 
-def email_weekly_report(bodyStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfPathStr: str, toEmailStr: str,
-                        emailHostAddress: str = 'smtp.gmail.com', pdfAttachmentNameStr: str = None,
-                        portInt: int = 587, subjectStr: str = 'Weekly Report (AUTOMATED)') -> None:
+def email_weekly_report(bodyStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfPathStr: str, subjectStr: str,
+                        toEmailStr: str, emailHostAddress: str = 'smtp.gmail.com', pdfAttachmentNameStr: str = None,
+                        portInt: int = 587) -> None:
     """
     """
     if pdfAttachmentNameStr is None:
@@ -158,9 +158,11 @@ def main(jsonDict) -> None:
     fromEmailPasswordStr = jsonDict['fromEmailPasswordStr']
     fromEmailStr = jsonDict['fromEmailStr']
     pdfAttachmentNameStr = jsonDict['pdfAttachmentNameStr'].format(pdfDateStr)
-    toEmailStr = jsonDict['toEmailStr']
+    subjectStr = jsonDict['subjectStr']
+    toEmailStr = jsonDict['toEmailStr'].format(pdfDateStr)
     email_weekly_report(bodyStr=bodyStr, fromEmailStr=fromEmailStr, fromEmailPasswordStr=fromEmailPasswordStr,
-                        pdfPathStr=pdfPathStr, toEmailStr=toEmailStr, pdfAttachmentNameStr=pdfAttachmentNameStr)
+                        pdfAttachmentNameStr=pdfAttachmentNameStr, pdfPathStr=pdfPathStr, subjectStr=subjectStr,
+                        toEmailStr=toEmailStr)
     display.stop()
 
 
