@@ -110,7 +110,7 @@ def login_to_clockify(emailStr: str, firefoxWebDriver: WebDriver, passwordStr: s
     get_web_element(cssSelectorStr=passwordCssSelector, webDriver=firefoxWebDriver).send_keys(passwordStr + '\ue007')
 
 
-def main(**kwargs) -> None:
+def main(jsonDict) -> None:
     """
     The logic of the file.
     """
@@ -126,8 +126,8 @@ def main(**kwargs) -> None:
     options.set_preference('pdfjs.disabled', True)
     firefoxWebDriver = webdriver.Firefox(options=options)
     urlStr = 'https://clockify.me/login'
-    clockifyEmailStr = kwargs['clockifyEmailStr']
-    clockifyPasswordStr = kwargs['clockifyPasswordStr']
+    clockifyEmailStr = jsonDict['clockifyEmailStr']
+    clockifyPasswordStr = jsonDict['clockifyPasswordStr']
     login_to_clockify(emailStr=clockifyEmailStr, firefoxWebDriver=firefoxWebDriver, passwordStr=clockifyPasswordStr,
                       urlStr=urlStr)
     WebDriverWait(firefoxWebDriver, MAX_WAIT_SEC_INT).until(expected_conditions.url_changes(urlStr))
@@ -142,11 +142,11 @@ def main(**kwargs) -> None:
     firefoxWebDriver.close()
     pdfPathStr = downloadDirPathStr + '/' + listdir(downloadDirPathStr)[-1]
     pdfDateStr = get_pdf_date_str(pdfPathStr=pdfPathStr)
-    bodyStr = kwargs['bodyStr'].format(pdfDateStr)
-    fromEmailPasswordStr = kwargs['fromEmailPasswordStr']
-    fromEmailStr = kwargs['fromEmailStr']
-    pdfAttachmentNameStr = kwargs['pdfAttachmentNameStr'].format(pdfDateStr)
-    toEmailStr = kwargs['toEmailStr']
+    bodyStr = jsonDict['bodyStr'].format(pdfDateStr)
+    fromEmailPasswordStr = jsonDict['fromEmailPasswordStr']
+    fromEmailStr = jsonDict['fromEmailStr']
+    pdfAttachmentNameStr = jsonDict['pdfAttachmentNameStr'].format(pdfDateStr)
+    toEmailStr = jsonDict['toEmailStr']
     email_weekly_report(bodyStr=bodyStr, fromEmailStr=fromEmailStr, fromEmailPasswordStr=fromEmailPasswordStr,
                         pdfPathStr=pdfPathStr, toEmailStr=toEmailStr, pdfAttachmentNameStr=pdfAttachmentNameStr)
     display.stop()
@@ -164,5 +164,5 @@ def web_driver_wait(cssSelectorStr: str, webDriver: WebDriver) -> None:
 
 if __name__ == '__main__':
     with open('example.json') as IN_FILE:
-        KWARGS = load(IN_FILE)
-    main(kwargs=KWARGS)
+        JSON_DICT = load(IN_FILE)
+    main(jsonDict=JSON_DICT)
