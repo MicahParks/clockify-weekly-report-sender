@@ -15,8 +15,8 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+from json import load
 from os import getcwd, listdir, mkdir
-from os.path import basename
 from shutil import rmtree
 from smtplib import SMTP
 from time import sleep
@@ -160,4 +160,6 @@ def web_driver_wait(cssSelectorStr: str, webDriver: WebDriver) -> None:
 
 
 if __name__ == '__main__':
-    main()
+    with open('example.json') as IN_FILE:
+        KWARGS = load(IN_FILE)
+    main(kwargs=KWARGS)
