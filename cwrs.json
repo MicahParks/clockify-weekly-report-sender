@@ -1,5 +1,5 @@
 {
-  "bodyStr": "Attached you will find the weekly report for {}.\n\n\nbeep boop.\nThis is an automated email. If you see anything wrong with it or would like to make a suggestion, please reply to it.",
+  "bodyStr": "Attached you will find the weekly report for {}.\n\n\nbeep boop.\nThis is an automated email. If you'd like to make a suggestion about when it should be sent, the content, if you see a mistake, or if you have a suggestion, please reply to it.",
   "clockifyEmailStr": "myClockifyEmail@mailzzzz.com",
   "clockifyPasswordStr": "myClockifyEmailPassword",
   "fromEmailPasswordStr": "myBotEmailPassword",
