@@ -31,6 +31,7 @@ from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
+
 # End third party imports.
 
 
@@ -56,6 +57,7 @@ def download_detailed_report(firefoxWebDriver: WebDriver) -> None:
     get_web_element(cssSelectorStr=dateDropDownCssSelector, webDriver=firefoxWebDriver).click()
     lastWeekCssSelector = '.ranges > ul:nth-child(1) > li:nth-child(4)'
     get_web_element(cssSelectorStr=lastWeekCssSelector, webDriver=firefoxWebDriver).click()
+    sleep(1)  # Can't figure out how to automate the wait for the next week to load :(
     printIconCssSelector = 'span.report-actions__item:nth-child(3)'
     get_web_element(cssSelectorStr=printIconCssSelector, webDriver=firefoxWebDriver).click()
 
