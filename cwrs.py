@@ -52,7 +52,7 @@ def download_detailed_report(firefoxWebDriver: WebDriver) -> None:
     """
     """
     firefoxWebDriver.get('https://clockify.me/reports/detailed')
-    dateDropDownCssSelector = '.date-picker--dropdown'
+    dateDropDownCssSelector = 'span.cl-btn'
     get_web_element(cssSelectorStr=dateDropDownCssSelector, webDriver=firefoxWebDriver).click()
     lastWeekCssSelector = '.ranges > ul:nth-child(1) > li:nth-child(4)'
     get_web_element(cssSelectorStr=lastWeekCssSelector, webDriver=firefoxWebDriver).click()
