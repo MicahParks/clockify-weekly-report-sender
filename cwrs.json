@@ -1,5 +1,6 @@
 {
   "bodyStr": "Attached you will find the weekly report for {}.\n\nThe total for the week is: {}. Please validate this with the attached report.\n\n\nbeep boop.\nThis is an automated email set for every Tuesday at 0800 EST. If you'd like to make a suggestion about when it should be sent, the content, if you see a mistake, or if you have a suggestion, please reply to it.",
+  "ccStr": "ccEmail@mailzzzz.com",
   "clockifyEmailStr": "myClockifyEmail@mailzzzz.com",
   "clockifyPasswordStr": "myClockifyEmailPassword",
   "fromEmailPasswordStr": "myBotEmailPassword",

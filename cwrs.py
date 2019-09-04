@@ -25,6 +25,7 @@ from time import sleep
 # Start third party imports.
 from pyvirtualdisplay import Display
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.webdriver import WebDriver
@@ -48,31 +49,41 @@ def date_str(dateStr: str) -> str:
     return yearStr + monthStr + dayStr
 
 
-def download_detailed_report(firefoxWebDriver: WebDriver) -> None:
+def download_detailed_report(firefoxWebDriver: WebDriver) -> str:
     """
     """
     firefoxWebDriver.get('https://clockify.me/reports/detailed')
-    dateDropDownCssSelector = 'span.cl-btn'
-    get_web_element(cssSelectorStr=dateDropDownCssSelector, webDriver=firefoxWebDriver).click()
-    lastWeekCssSelector = '.ranges > ul:nth-child(1) > li:nth-child(4)'
-    get_web_element(cssSelectorStr=lastWeekCssSelector, webDriver=firefoxWebDriver).click()
-    sleep(1)  # Can't figure out how to automate the wait for the next week to load :(
+    previousWeekCssSelectorStr = 'button.cl-btn:nth-child(2)'
+    WebDriverWait(firefoxWebDriver, 5).until(
+        expected_conditions.invisibility_of_element((By.CLASS_NAME, 'rotating-loader-wrapper')))
+    get_web_element(cssSelectorStr=previousWeekCssSelectorStr, webDriver=firefoxWebDriver).click()
     printIconCssSelector = 'span.report-actions__item:nth-child(3)'
+    WebDriverWait(firefoxWebDriver, 5).until(
+        expected_conditions.invisibility_of_element((By.CLASS_NAME, 'rotating-loader-wrapper')))
+    sleep(2)
     get_web_element(cssSelectorStr=printIconCssSelector, webDriver=firefoxWebDriver).click()
+    try:
+        billStr = get_web_element(cssSelectorStr='.report__total-time--third', webDriver=firefoxWebDriver).text.strip(
+            '(USD) ')
+        billStr = '$' + billStr
+    except TimeoutException:
+        billStr = '(website bug occurred)'
+    return billStr
 
 
-def email_weekly_report(bodyStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfPathStr: str, subjectStr: str,
-                        toEmailStr: str, emailHostAddress: str = 'smtp.gmail.com', pdfAttachmentNameStr: str = None,
-                        portInt: int = 587) -> None:
+def email_weekly_report(bodyStr: str, ccStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfPathStr: str,
+                        subjectStr: str, toEmailStr: str, emailHostAddress: str = 'smtp.gmail.com',
+                        pdfAttachmentNameStr: str = None, portInt: int = 587) -> None:
     """
     """
     if pdfAttachmentNameStr is None:
         pdfAttachmentNameStr = pdfPathStr.split('/')[-1]
     mimeMultipart = MIMEMultipart()
-    mimeMultipart['From'] = fromEmailStr
-    mimeMultipart['To'] = toEmailStr
+    mimeMultipart['Cc'] = ccStr
     mimeMultipart['Date'] = formatdate(localtime=True)
+    mimeMultipart['From'] = fromEmailStr
     mimeMultipart['Subject'] = subjectStr
+    mimeMultipart['To'] = toEmailStr
     mimeMultipart.attach(MIMEText(bodyStr))
     with open(pdfPathStr, 'rb') as inFile:
         pdfMimeApplication = MIMEApplication(inFile.read(), Name=pdfAttachmentNameStr)
@@ -132,11 +143,11 @@ def main(jsonDict) -> None:
     """
     The logic of the file.
     """
-    display = Display(visible=0, size=(800, 600))
-    display.start()
+    # display = Display(visible=0, size=(800, 600))
+    # display.start()
     downloadDirPathStr = getcwd() + '/tempdownloadz'
     options = Options()
-    options.headless = True
+    # options.headless = True
     options.set_preference('browser.download.folderList', 2)
     options.set_preference('browser.download.manager.showWhenStarting', False)
     options.set_preference('browser.download.dir', downloadDirPathStr)
@@ -154,22 +165,24 @@ def main(jsonDict) -> None:
     except FileNotFoundError:
         pass
     mkdir(downloadDirPathStr)
-    download_detailed_report(firefoxWebDriver=firefoxWebDriver)
+    billStr = download_detailed_report(firefoxWebDriver=firefoxWebDriver)
     while len(listdir(downloadDirPathStr)) == 0:
         sleep(.1)
     firefoxWebDriver.close()
     pdfPathStr = downloadDirPathStr + '/' + listdir(downloadDirPathStr)[-1]
     pdfDateStr = get_pdf_date_str(pdfPathStr=pdfPathStr)
-    bodyStr = jsonDict['bodyStr'].format(pdfDateStr)
+    bodyStr = jsonDict['bodyStr'].format(pdfDateStr, billStr)
+    ccStr = jsonDict['ccStr']
     fromEmailPasswordStr = jsonDict['fromEmailPasswordStr']
     fromEmailStr = jsonDict['fromEmailStr']
     pdfAttachmentNameStr = jsonDict['pdfAttachmentNameStr'].format(pdfDateStr)
     subjectStr = jsonDict['subjectStr']
     toEmailStr = jsonDict['toEmailStr'].format(pdfDateStr)
-    email_weekly_report(bodyStr=bodyStr, fromEmailStr=fromEmailStr, fromEmailPasswordStr=fromEmailPasswordStr,
+    email_weekly_report(bodyStr=bodyStr, ccStr=ccStr, fromEmailStr=fromEmailStr,
+                        fromEmailPasswordStr=fromEmailPasswordStr,
                         pdfAttachmentNameStr=pdfAttachmentNameStr, pdfPathStr=pdfPathStr, subjectStr=subjectStr,
                         toEmailStr=toEmailStr)
-    display.stop()
+    # display.stop()
 
 
 def web_driver_wait(cssSelectorStr: str, webDriver: WebDriver) -> None:
@@ -183,6 +196,6 @@ def web_driver_wait(cssSelectorStr: str, webDriver: WebDriver) -> None:
 
 
 if __name__ == '__main__':
-    with open('/cwrs.json') as IN_FILE:
+    with open('cwrs.json') as IN_FILE:
         JSON_DICT = load(IN_FILE)
     main(jsonDict=JSON_DICT)
