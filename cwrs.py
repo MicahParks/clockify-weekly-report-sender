@@ -31,7 +31,6 @@ from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
-
 # End third party imports.
 
 
@@ -97,12 +96,13 @@ def email_weekly_report(bodyStr: str, fromEmailStr: str, fromEmailPasswordStr: s
 
 
 def get_pdf_date_str(pdfPathStr: str) -> str:
-    """"
+    """
+    Clockify_Detailed_Report_09_03_2019-09_09_2019.pdf
     """
     pdfDateStr = pdfPathStr.split('/')[-1]
-    pdfDateStr = pdfDateStr.lstrip('clockify-report-')
+    pdfDateStr = pdfDateStr.lstrip('Clockify_Detailed_Report_')
     pdfDateStr = pdfDateStr.rstrip('.pdf')
-    dateStrList = pdfDateStr.split('-to-')
+    dateStrList = pdfDateStr.split('-')
     startDateStr = date_str(dateStr=dateStrList[0])
     endDateStr = date_str(dateStr=dateStrList[-1])
     pdfDateStr = startDateStr + '-' + endDateStr
