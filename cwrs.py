@@ -143,11 +143,11 @@ def main(jsonDict) -> None:
     """
     The logic of the file.
     """
-    # display = Display(visible=0, size=(800, 600))
-    # display.start()
+    display = Display(visible=0, size=(800, 600))
+    display.start()
     downloadDirPathStr = getcwd() + '/tempdownloadz'
     options = Options()
-    # options.headless = True
+    options.headless = True
     options.set_preference('browser.download.folderList', 2)
     options.set_preference('browser.download.manager.showWhenStarting', False)
     options.set_preference('browser.download.dir', downloadDirPathStr)
@@ -182,7 +182,7 @@ def main(jsonDict) -> None:
                         fromEmailPasswordStr=fromEmailPasswordStr,
                         pdfAttachmentNameStr=pdfAttachmentNameStr, pdfPathStr=pdfPathStr, subjectStr=subjectStr,
                         toEmailStr=toEmailStr)
-    # display.stop()
+    display.stop()
 
 
 def web_driver_wait(cssSelectorStr: str, webDriver: WebDriver) -> None:
