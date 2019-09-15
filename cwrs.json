@@ -1,11 +1,46 @@
 {
   "bodyStr": "Attached you will find the weekly report for {}.\n\nThe total for the week is: {}. Please validate this with the attached report.\n\n\nbeep boop.\nThis is an automated email set for every Tuesday at 0800 EST. If you'd like to make a suggestion about when it should be sent, the content, if you see a mistake, or if you have a suggestion, please reply to it.",
-  "ccStr": "ccEmail@mailzzzz.com",
-  "clockifyEmailStr": "myClockifyEmail@mailzzzz.com",
-  "clockifyPasswordStr": "myClockifyEmailPassword",
-  "fromEmailPasswordStr": "myBotEmailPassword",
-  "fromEmailStr": "myBotEmail@gmail.com",
+  "ccStr": "MISSING",
+  "clockifyCredentials": {
+    "email": "MISSING",
+    "password": "MISSING"
+  },
+  "fromEmailPasswordStr": "MISSING",
+  "fromEmailStr": "MISSING",
   "pdfAttachmentNameStr": "{} weekly report.pdf",
   "subjectStr": "Weekly Report (AUTOMATED)",
-  "toEmailStr": "myClientsEmail@clientBusiness.com"
+  "toEmailStr": "MISSING",
+  "data": {
+    "userGroupIds": [],
+    "userIds": [],
+    "projectIds": [],
+    "clientIds": [],
+    "taskIds": [],
+    "tagIds": [],
+    "billable": "BOTH",
+    "description": "",
+    "firstTime": true,
+    "archived": "Active",
+    "startDate": "{}T00:00:00.000Z",
+    "endDate": "{}T23:59:59.999Z",
+    "me": "TEAM",
+    "includeTimeEntries": true,
+    "zoomLevel": "week",
+    "name": "",
+    "groupingOn": false,
+    "groupedByDate": false,
+    "page": 0,
+    "sortDetailedBy": "timeAsc",
+    "count": 500,
+    "roundingOn": false,
+    "isDetailed": true,
+    "groupBy": "PROJECT",
+    "subgroupBy": "TIME_ENTRY",
+    "weeklyGroupBy": "PROJECT",
+    "weeklySubgroupBy": "TIME"
+  },
+  "headers": {
+    "Content-Type": "application/json",
+    "DNT": "1"
+  }
 }

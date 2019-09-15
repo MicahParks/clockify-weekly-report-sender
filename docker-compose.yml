@@ -1,8 +1,10 @@
 version: '3'
 services:
   cwrs:
-    command: 'python /cwrs.py'
-    image: micahparks/seleniumpython
+    command: 'python /cwrs.py /cwrs.json'
+    container_name: cwrs
+    image: requests
     volumes:
       - ./cwrs.py:/cwrs.py
       - ./cwrs.json:/cwrs.json
+
