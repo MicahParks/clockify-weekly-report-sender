@@ -1,3 +1,3 @@
-docker-compose -f /home/micah/cwrs/docker-compose.yml up
-docker logs cwrs &> /home/micah/cwrs/cwrs.log
-docker-compose -f /home/micah/cwrs/docker-compose.yml down
+docker-compose -f /root/cwrs/docker-compose.yml up
+docker logs cwrs &> /root/cwrs/cwrs.log
+docker-compose -f /root/cwrs/docker-compose.yml down
