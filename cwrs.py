@@ -114,15 +114,16 @@ def main(configDict) -> None:
         billStr = 'ERROR'
     bodyStr = configDict['bodyStr'].format(yesterdayDateStr, billStr)
     ccStr = configDict['ccStr']
+    emailHostAddress = configDict['emailHostAddress']
     fromEmailPasswordStr = configDict['fromEmailPasswordStr']
     fromEmailStr = configDict['fromEmailStr']
     pdfAttachmentNameStr = configDict['pdfAttachmentNameStr'].format(yesterdayDateStr)
+    portInt = configDict['portInt']
     subjectStr = configDict['subjectStr']
     toEmailStr = configDict['toEmailStr'].format(yesterdayDateStr)
-    email_weekly_report(bodyStr=bodyStr, ccStr=ccStr, fromEmailStr=fromEmailStr,
-                        fromEmailPasswordStr=fromEmailPasswordStr,
-                        pdfAttachmentNameStr=pdfAttachmentNameStr, pdfFile=pdfFile, subjectStr=subjectStr,
-                        toEmailStr=toEmailStr)
+    email_weekly_report(bodyStr=bodyStr, ccStr=ccStr, emailHostAddress=emailHostAddress, fromEmailStr=fromEmailStr,
+                        fromEmailPasswordStr=fromEmailPasswordStr, pdfAttachmentNameStr=pdfAttachmentNameStr,
+                        pdfFile=pdfFile, portInt=portInt, subjectStr=subjectStr, toEmailStr=toEmailStr)
 
 
 if __name__ == '__main__':

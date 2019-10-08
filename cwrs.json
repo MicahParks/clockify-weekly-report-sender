@@ -5,11 +5,13 @@
     "email": "MISSING",
     "password": "MISSING"
   },
+  "emailHostAddress": "smtp.google.com",
   "fromEmailPasswordStr": "MISSING",
   "fromEmailStr": "MISSING",
   "pdfAttachmentNameStr": "{} weekly report.pdf",
   "subjectStr": "Weekly Report (AUTOMATED)",
   "toEmailStr": "MISSING",
+  "portInt": 587,
   "data": {
     "userGroupIds": [],
     "userIds": [],
