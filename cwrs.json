@@ -29,7 +29,7 @@
     "includeTimeEntries": true,
     "zoomLevel": "week",
     "name": "",
-    "groupingOn": false,
+    "groupingOn": true,
     "groupedByDate": false,
     "page": 0,
     "sortDetailedBy": "timeAsc",
