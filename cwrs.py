@@ -120,7 +120,7 @@ def main(configDict) -> None:
     pdfAttachmentNameStr = configDict['pdfAttachmentNameStr'].format(yesterdayDateStr)
     portInt = configDict['portInt']
     subjectStr = configDict['subjectStr']
-    toEmailsStrList = configDict['toEmailsStrList'].format(yesterdayDateStr)
+    toEmailsStrList = configDict['toEmailsStrList']
     email_weekly_report(bodyStr=bodyStr, ccStr=ccStr, emailHostAddress=emailHostAddress, fromEmailStr=fromEmailStr,
                         fromEmailPasswordStr=fromEmailPasswordStr, pdfAttachmentNameStr=pdfAttachmentNameStr,
                         pdfFile=pdfFile, portInt=portInt, subjectStr=subjectStr, toEmailsStrList=toEmailsStrList)
