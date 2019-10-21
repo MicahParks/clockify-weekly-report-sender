@@ -10,7 +10,9 @@
   "fromEmailStr": "MISSING",
   "pdfAttachmentNameStr": "{} weekly report.pdf",
   "subjectStr": "Weekly Report (AUTOMATED)",
-  "toEmailStr": "MISSING",
+  "toEmailsStrList": [
+    "MISSING"
+  ],
   "portInt": 587,
   "data": {
     "userGroupIds": [],

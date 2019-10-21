@@ -27,7 +27,7 @@ from requests import get, post
 
 
 def email_weekly_report(bodyStr: str, ccStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfFile: bytes,
-                        subjectStr: str, toEmailStr: str, emailHostAddress: str = 'smtp.gmail.com',
+                        subjectStr: str, toEmailsStrList: list, emailHostAddress: str = 'smtp.gmail.com',
                         pdfAttachmentNameStr: str = None, portInt: int = 587) -> None:
     """
     """
@@ -36,7 +36,7 @@ def email_weekly_report(bodyStr: str, ccStr: str, fromEmailStr: str, fromEmailPa
     mimeMultipart['Date'] = formatdate(localtime=True)
     mimeMultipart['From'] = fromEmailStr
     mimeMultipart['Subject'] = subjectStr
-    mimeMultipart['To'] = toEmailStr
+    mimeMultipart['To'] = ', '.join(toEmailsStrList)
     mimeMultipart.attach(MIMEText(bodyStr))
     pdfMimeApplication = MIMEApplication(pdfFile, Name=pdfAttachmentNameStr)
     pdfMimeApplication['Content-Disposition'] = 'attachment; filename="{}"'.format(pdfAttachmentNameStr)
@@ -54,7 +54,7 @@ def email_weekly_report(bodyStr: str, ccStr: str, fromEmailStr: str, fromEmailPa
     except Exception as exceptionStr:
         print('Failure to log into "{}" at "{}:{}"\nException: "{}".'.format(fromEmailStr, emailHostAddress, portInt,
                                                                              exceptionStr))
-    smtpSsl.sendmail(fromEmailStr, toEmailStr, mimeMultipart.as_string())
+    smtpSsl.sendmail(fromEmailStr, toEmailsStrList, mimeMultipart.as_string())
     smtpSsl.close()
 
 
@@ -120,10 +120,10 @@ def main(configDict) -> None:
     pdfAttachmentNameStr = configDict['pdfAttachmentNameStr'].format(yesterdayDateStr)
     portInt = configDict['portInt']
     subjectStr = configDict['subjectStr']
-    toEmailStr = configDict['toEmailStr'].format(yesterdayDateStr)
+    toEmailsStrList = configDict['toEmailsStrList'].format(yesterdayDateStr)
     email_weekly_report(bodyStr=bodyStr, ccStr=ccStr, emailHostAddress=emailHostAddress, fromEmailStr=fromEmailStr,
                         fromEmailPasswordStr=fromEmailPasswordStr, pdfAttachmentNameStr=pdfAttachmentNameStr,
-                        pdfFile=pdfFile, portInt=portInt, subjectStr=subjectStr, toEmailStr=toEmailStr)
+                        pdfFile=pdfFile, portInt=portInt, subjectStr=subjectStr, toEmailsStrList=toEmailsStrList)
 
 
 if __name__ == '__main__':
