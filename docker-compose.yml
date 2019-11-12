@@ -5,6 +5,5 @@ services:
     container_name: cwrs
     image: requests
     volumes:
-      - ./cwrs.py:/cwrs.py
       - ./cwrs.json:/cwrs.json
 
