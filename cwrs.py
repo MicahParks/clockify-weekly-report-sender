@@ -26,13 +26,12 @@ from requests import get, post
 # End third party imports.
 
 
-def email_weekly_report(bodyStr: str, ccStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfFile: bytes,
+def email_weekly_report(bodyStr: str, fromEmailStr: str, fromEmailPasswordStr: str, pdfFile: bytes,
                         subjectStr: str, toEmailsStrList: list, emailHostAddress: str = 'smtp.gmail.com',
                         pdfAttachmentNameStr: str = None, portInt: int = 587) -> None:
     """
     """
     mimeMultipart = MIMEMultipart()
-    mimeMultipart['Cc'] = ccStr
     mimeMultipart['Date'] = formatdate(localtime=True)
     mimeMultipart['From'] = fromEmailStr
     mimeMultipart['Subject'] = subjectStr
@@ -113,7 +112,6 @@ def main(configDict) -> None:
         print('Exception in getting the total bill as a string: {}'.format(exception))
         billStr = 'ERROR'
     bodyStr = configDict['bodyStr'].format(yesterdayDateStr, billStr)
-    ccStr = configDict['ccStr']
     emailHostAddress = configDict['emailHostAddress']
     fromEmailPasswordStr = configDict['fromEmailPasswordStr']
     fromEmailStr = configDict['fromEmailStr']
@@ -121,7 +119,7 @@ def main(configDict) -> None:
     portInt = configDict['portInt']
     subjectStr = configDict['subjectStr']
     toEmailsStrList = configDict['toEmailsStrList']
-    email_weekly_report(bodyStr=bodyStr, ccStr=ccStr, emailHostAddress=emailHostAddress, fromEmailStr=fromEmailStr,
+    email_weekly_report(bodyStr=bodyStr, emailHostAddress=emailHostAddress, fromEmailStr=fromEmailStr,
                         fromEmailPasswordStr=fromEmailPasswordStr, pdfAttachmentNameStr=pdfAttachmentNameStr,
                         pdfFile=pdfFile, portInt=portInt, subjectStr=subjectStr, toEmailsStrList=toEmailsStrList)
 
