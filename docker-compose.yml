@@ -3,7 +3,7 @@ services:
   cwrs:
     command: 'python /cwrs.py /cwrs.json'
     container_name: cwrs
-    image: requests
+    image: micahparks/cwrs
     volumes:
       - ./cwrs.json:/cwrs.json
 
