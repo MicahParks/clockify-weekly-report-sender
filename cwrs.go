@@ -1,0 +1,302 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+)
+
+const (
+	billingEndpoint = "https://global.api.clockify.me/workspaces/%s/reports/new/summary/"
+	defaultTimeout  = time.Second * 10
+	pdfReqBody      = `{
+    "userGroupIds": [],
+    "userIds": [],
+    "projectIds": [],
+    "clientIds": [
+      "5cfd9075a02f7a6dc1bba9c7"
+    ],
+    "taskIds": [],
+    "tagIds": [],
+    "billable": "BOTH",
+    "description": "",
+    "firstTime": true,
+    "archived": "Active",
+    "startDate": "%s",
+    "endDate": "%s",
+    "me": "TEAM",
+    "includeTimeEntries": true,
+    "zoomLevel": "week",
+    "name": "",
+    "groupingOn": true,
+    "groupedByDate": false,
+    "page": 0,
+    "sortDetailedBy": "timeAsc",
+    "count": 500,
+    "roundingOn": false,
+    "isDetailed": true,
+    "groupBy": "PROJECT",
+    "subgroupBy": "TIME_ENTRY",
+    "weeklyGroupBy": "PROJECT",
+    "weeklySubgroupBy": "TIME"
+  }`
+	pdfEndpoint       = "https://global.api.clockify.me/workspaces/%s/reports/summary"
+	tokenEndpoint     = "https://global.api.clockify.me/auth/token"
+	workspaceEndpoint = "https://global.api.clockify.me/workspaces/"
+)
+
+var (
+	errNoWorkspaces = errors.New("no workspaces were found")
+)
+
+type billableResponse struct {
+	TotalBillable int `json:"totalBillable"`
+}
+
+type credentials struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type tokenResponse struct {
+	Token string `json:"token"`
+}
+
+type workspaceResponse struct {
+	Memberships []membershipsResponse `json:"memberships"`
+}
+
+type membershipsResponse struct {
+	TargetId string `json:"targetId"`
+}
+
+func addTokenHeader(req *http.Request, token string) {
+	req.Header.Add("X-Auth-Token", token)
+}
+
+func authToken(ctx context.Context, client *http.Client, email, password string) (authToken string, err error) {
+
+	// Create the credentials structure.
+	creds := &credentials{
+		Email:    email,
+		Password: password,
+	}
+
+	// Turn the credentials into bytes.
+	var body []byte
+	if body, err = json.Marshal(creds); err != nil {
+		return "", err
+	}
+
+	// Create the request to get a token with.
+	var req *http.Request
+	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, tokenEndpoint, bytes.NewReader(body)); err != nil {
+		return "", err
+	}
+
+	// Set the headers for the request.
+	jsonHeaders(req)
+
+	// Perform the request.
+	var resp *http.Response
+	if resp, err = client.Do(req); err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Get the body of the response.
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		return "", err
+	}
+
+	// Unmarshal the body into the expected structure.
+	token := &tokenResponse{}
+	if err = json.Unmarshal(body, token); err != nil {
+		return "", err
+	}
+
+	return token.Token, nil
+}
+
+func billTotal(ctx context.Context, client *http.Client, reqBody []byte, token, workspace string) (billable string, err error) {
+
+	// Create the URL.
+	url := fmt.Sprintf(billingEndpoint, workspace)
+
+	// Create the request.
+	var req *http.Request
+	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(reqBody)); err != nil {
+		return "", err
+	}
+
+	// Set the headers for the request.
+	addTokenHeader(req, token)
+	jsonHeaders(req)
+
+	// Perform the request.
+	var resp *http.Response
+	if resp, err = client.Do(req); err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Get the body of the response.
+	var body []byte
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		return "", err
+	}
+
+	// Unmarshal the body into the expected structure.
+	bill := &billableResponse{}
+	if err = json.Unmarshal(body, bill); err != nil {
+		return "", err
+	}
+
+	// Get the total in a dollar amount.
+	total := float64(bill.TotalBillable) / 100
+
+	return "$" + fmt.Sprintf("%.2f", total), err
+}
+
+func firstWorkspace(ctx context.Context, client *http.Client, token string) (workspace string, err error) {
+
+	// Create the request.
+	var req *http.Request
+	if req, err = http.NewRequestWithContext(ctx, http.MethodGet, workspaceEndpoint, bytes.NewReader(nil)); err != nil {
+		return "", err
+	}
+
+	// Set the headers for the request.
+	addTokenHeader(req, token)
+	jsonHeaders(req)
+
+	// Perform the request.
+	var resp *http.Response
+	if resp, err = client.Do(req); err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Get the body of the response.
+	var body []byte
+	if body, err = ioutil.ReadAll(resp.Body); err != nil {
+		return "", err
+	}
+
+	// Unmarshal the body into the expected structure.
+	workspaces := []workspaceResponse{}
+	if err = json.Unmarshal(body, workspaces); err != nil {
+		return "", err
+	}
+
+	// Get the first workspace's target ID.
+	first := ""
+	if len(workspaces) > 0 && len(workspaces[0].Memberships) > 0 {
+		first = workspaces[0].Memberships[0].TargetId
+	} else {
+		return "", errNoWorkspaces
+	}
+
+	return first, nil
+}
+
+func pdf(ctx context.Context, client *http.Client, token, workspace string) (pdfBytes, reqBody []byte, err error) {
+
+	// Start last week at 0000h and end yesterday at 2400h.
+	now := time.Now().UTC().Truncate(time.Hour * 24)
+	lastWeek := now.AddDate(0, 0, -7)
+
+	// Create the URL.
+	url := fmt.Sprintf(pdfEndpoint, workspace)
+
+	// Create the body as a string.
+	bodyStr := fmt.Sprintf(pdfReqBody, lastWeek.Format(time.RFC3339), now.Format(time.RFC3339))
+
+	// Create the request.
+	var req *http.Request
+	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(bodyStr)); err != nil {
+		return nil, nil, err
+	}
+
+	// Set the headers for the request.
+	addTokenHeader(req, token)
+	jsonHeaders(req)
+
+	// Set the URL query.
+	req.URL.Query().Add("export", "pdf")
+
+	// Perform the request.
+	var resp *http.Response
+	if resp, err = client.Do(req); err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	// Get the body of the response.
+	if pdfBytes, err = ioutil.ReadAll(resp.Body); err != nil {
+		return nil, nil, err
+	}
+
+	return pdfBytes, []byte(bodyStr), nil
+}
+
+func jsonHeaders(req *http.Request) {
+	req.Header.Add("Content-Type", "application/json")
+}
+
+func main() {
+
+	// Create a logger.
+	l := log.New(os.Stdout, "cwrs: ", log.LstdFlags|log.Lshortfile)
+
+	// Get the current time.
+	now := time.Now().UTC()
+
+	// Grab the environment variables.
+	email := os.Getenv("CLOCKIFY_EMAIL")
+	password := os.Getenv("CLOCKIFY_PASSWORD")
+
+	// Make an HTTP client.
+	client := &http.Client{}
+
+	// Create a context.
+	ctx, _ := defaultContext()
+
+	// Get an authentication token from Clockify.
+	token := ""
+	var err error
+	if token, err = authToken(ctx, client, email, password); err != nil {
+		l.Fatalln(err.Error())
+	}
+
+	// Get the first workspace.
+	workspace := ""
+	if workspace, err = firstWorkspace(ctx, client, token); err != nil {
+		l.Fatalln(err.Error())
+	}
+
+	// Get the PDF report.
+	var pdfBytes []byte
+	var reqBody []byte
+	if pdfBytes, reqBody, err = pdf(ctx, client, token, workspace); err != nil {
+		l.Fatalln(err.Error())
+	}
+
+	// Get the total amount billable as a string.
+	billable := ""
+	if billable, err = billTotal(ctx, client, reqBody, token, workspace); err != nil {
+		l.Fatalln(err.Error())
+	}
+}
+
+func defaultContext() (ctx context.Context, cancel context.CancelFunc) {
+	return context.WithTimeout(context.Background(), defaultTimeout)
+}
