@@ -9,9 +9,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/smtp"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/jordan-wright/email"
 )
 
 const (
@@ -126,7 +129,7 @@ func authToken(ctx context.Context, client *http.Client, email, password string)
 	return token.Token, nil
 }
 
-func billTotal(ctx context.Context, client *http.Client, reqBody []byte, token, workspace string) (billable string, err error) {
+func billTotal(ctx context.Context, client *http.Client, reqBody []byte, token, workspace string) (billable string, sendBill bool, err error) {
 
 	// Create the URL.
 	url := fmt.Sprintf(billingEndpoint, workspace)
@@ -134,7 +137,7 @@ func billTotal(ctx context.Context, client *http.Client, reqBody []byte, token, 
 	// Create the request.
 	var req *http.Request
 	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(reqBody)); err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	// Set the headers for the request.
@@ -144,26 +147,56 @@ func billTotal(ctx context.Context, client *http.Client, reqBody []byte, token, 
 	// Perform the request.
 	var resp *http.Response
 	if resp, err = client.Do(req); err != nil {
-		return "", err
+		return "", false, err
 	}
 	defer resp.Body.Close()
 
 	// Get the body of the response.
 	var body []byte
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	// Unmarshal the body into the expected structure.
 	bill := &billableResponse{}
 	if err = json.Unmarshal(body, bill); err != nil {
-		return "", err
+		return "", false, err
+	}
+
+	if bill.TotalBillable == 0 {
+		return "", false, nil
 	}
 
 	// Get the total in a dollar amount.
 	total := float64(bill.TotalBillable) / 100
 
-	return "$" + fmt.Sprintf("%.2f", total), err
+	return "$" + fmt.Sprintf("%.2f", total), true, err
+}
+
+func sendEmail(body []byte, from string, pdf []byte, smtpAddr, smtpPassword, subject string, to []string) (err error) {
+
+	// Create the email.
+	e := &email.Email{
+		From:    from,
+		To:      to,
+		Subject: subject,
+		HTML:    body,
+	}
+
+	// Attach the PDF.
+	if _, err = e.Attach(bytes.NewReader(pdf), "report.pdf", "application/pdf"); err != nil {
+		return err
+	}
+
+	// Authenticate to the server.
+	auth := smtp.PlainAuth("", from, smtpPassword, smtpAddr)
+
+	// Send the email.
+	if err = e.Send(smtpAddr, auth); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func firstWorkspace(ctx context.Context, client *http.Client, token string) (workspace string, err error) {
@@ -257,12 +290,9 @@ func main() {
 	// Create a logger.
 	l := log.New(os.Stdout, "cwrs: ", log.LstdFlags|log.Lshortfile)
 
-	// Get the current time.
-	now := time.Now().UTC()
-
 	// Grab the environment variables.
-	email := os.Getenv("CLOCKIFY_EMAIL")
-	password := os.Getenv("CLOCKIFY_PASSWORD")
+	clockifyEmail := os.Getenv("CLOCKIFY_EMAIL")
+	clockifyPassword := os.Getenv("CLOCKIFY_PASSWORD")
 
 	// Make an HTTP client.
 	client := &http.Client{}
@@ -273,7 +303,7 @@ func main() {
 	// Get an authentication token from Clockify.
 	token := ""
 	var err error
-	if token, err = authToken(ctx, client, email, password); err != nil {
+	if token, err = authToken(ctx, client, clockifyEmail, clockifyPassword); err != nil {
 		l.Fatalln(err.Error())
 	}
 
@@ -292,9 +322,21 @@ func main() {
 
 	// Get the total amount billable as a string.
 	billable := ""
-	if billable, err = billTotal(ctx, client, reqBody, token, workspace); err != nil {
+	sendBill := false
+	if billable, sendBill, err = billTotal(ctx, client, reqBody, token, workspace); err != nil {
 		l.Fatalln(err.Error())
 	}
+
+	// Check to see if the bill should be sent.
+	if !sendBill {
+		return
+	}
+
+	sendEmail()
+}
+
+func makeBody(bill string) (html []byte) {
+	htmlStr := ``
 }
 
 func defaultContext() (ctx context.Context, cancel context.CancelFunc) {
