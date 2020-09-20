@@ -18,9 +18,28 @@ import (
 )
 
 const (
-	billingEndpoint = "https://reports.api.clockify.me/workspaces/%s/reports/new/summary"
+	billingEndpoint = "https://reports.api.clockify.me/workspaces/%s/reports/summary"
 	defaultTimeout  = time.Hour
-	pdfReqBody      = `{
+	billReqBody     = `{
+  "dateRangeStart": "%s",
+  "dateRangeEnd": "%s",
+  "sortOrder": "ASCENDING",
+  "description": "",
+  "rounding": false,
+  "withoutDescription": false,
+  "amountShown": "EARNED",
+  "zoomLevel": "WEEK",
+  "userLocale": "en_US",
+  "customFields": null,
+  "summaryFilter": {
+    "sortColumn": "GROUP",
+    "groups": [
+      "PROJECT",
+      "TIMEENTRY"
+    ]
+  }
+}`
+	pdfReqBody = `{
   "dateRangeStart": "%s",
   "dateRangeEnd": "%s",
   "sortOrder": "ASCENDING",
@@ -42,7 +61,7 @@ const (
 }`
 	pdfEndpoint       = "https://reports.api.clockify.me/workspaces/%s/reports/summary"
 	tokenEndpoint     = "https://global.api.clockify.me/auth/token"
-	workspaceEndpoint = "https://global.api.clockify.me/workspaces"
+	workspaceEndpoint = "https://global.api.clockify.me/workspaces/"
 )
 
 var (
@@ -50,7 +69,7 @@ var (
 )
 
 type billableResponse struct {
-	TotalBillable int `json:"totalBillable"`
+	Totals []totalResponse `json:"totals"`
 }
 
 type credentials struct {
@@ -68,6 +87,10 @@ type workspaceResponse struct {
 
 type membershipsResponse struct {
 	TargetId string `json:"targetId"`
+}
+
+type totalResponse struct {
+	TotalAmount float64 `json:"totalAmount"`
 }
 
 func addTokenHeader(req *http.Request, token string) {
@@ -118,14 +141,25 @@ func authToken(ctx context.Context, client *http.Client, email, password string)
 	return token.Token, nil
 }
 
-func billTotal(ctx context.Context, client *http.Client, reqBody []byte, token, workspace string) (billable string, sendBill bool, err error) {
+func billTotal(ctx context.Context, client *http.Client, now time.Time, token, workspace string) (billable string, sendBill bool, err error) {
 
 	// Create the URL.
 	url := fmt.Sprintf(billingEndpoint, workspace)
 
+	// Start last week at 0000h and end yesterday at 2400h.
+	var loc *time.Location
+	if loc, err = time.LoadLocation("America/New_York"); err != nil {
+		return "", false, err
+	}
+	now = time.Now().In(loc).Truncate(time.Hour * 24)
+	lastWeek := now.AddDate(0, 0, -7)
+
+	// Create the body as a string.
+	bodyStr := fmt.Sprintf(billReqBody, lastWeek.Format("2006-01-02T15:04:05Z"), now.Format("2006-01-02T15:04:05Z"))
+
 	// Create the request.
 	var req *http.Request
-	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(reqBody)); err != nil {
+	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(bodyStr)); err != nil {
 		return "", false, err
 	}
 
@@ -152,12 +186,18 @@ func billTotal(ctx context.Context, client *http.Client, reqBody []byte, token, 
 		return "", false, err
 	}
 
-	if bill.TotalBillable == 0 {
+	// Make sure there is something to charge.
+	if len(bill.Totals) == 0 {
+		return "", false, nil
+	}
+
+	// Make sure there is something to charge.
+	if bill.Totals[0].TotalAmount == 0 {
 		return "", false, nil
 	}
 
 	// Get the total in a dollar amount.
-	total := float64(bill.TotalBillable) / 100
+	total := bill.Totals[0].TotalAmount / 100
 
 	return "$" + fmt.Sprintf("%.2f", total), true, err
 }
@@ -230,14 +270,14 @@ func firstWorkspace(ctx context.Context, client *http.Client, token string) (wor
 	return first, nil
 }
 
-func pdf(ctx context.Context, client *http.Client, token, workspace string) (lastWeekStr string, pdfBytes, reqBody []byte, err error) {
+func pdf(ctx context.Context, client *http.Client, token, workspace string) (lastWeekStr string, pdfBytes []byte, now time.Time, err error) {
 
 	// Start last week at 0000h and end yesterday at 2400h.
 	var loc *time.Location
 	if loc, err = time.LoadLocation("America/New_York"); err != nil {
-		return "", nil, nil, err
+		return "", nil, now, err
 	}
-	now := time.Now().In(loc).Truncate(time.Hour * 24)
+	now = time.Now().In(loc).Truncate(time.Hour * 24)
 	lastWeek := now.AddDate(0, 0, -7)
 	lastWeekStr = fmt.Sprintf("%d-%d-%d", lastWeek.Year(), lastWeek.Month(), lastWeek.Day())
 
@@ -250,7 +290,7 @@ func pdf(ctx context.Context, client *http.Client, token, workspace string) (las
 	// Create the request.
 	var req *http.Request
 	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(bodyStr)); err != nil {
-		return lastWeekStr, nil, nil, err
+		return lastWeekStr, nil, now, err
 	}
 
 	// Set the headers for the request.
@@ -263,16 +303,16 @@ func pdf(ctx context.Context, client *http.Client, token, workspace string) (las
 	// Perform the request.
 	var resp *http.Response
 	if resp, err = client.Do(req); err != nil {
-		return lastWeekStr, nil, nil, err
+		return lastWeekStr, nil, now, err
 	}
 	defer resp.Body.Close()
 
 	// Get the body of the response.
 	if pdfBytes, err = ioutil.ReadAll(resp.Body); err != nil {
-		return lastWeekStr, nil, nil, err
+		return lastWeekStr, nil, now, err
 	}
 
-	return lastWeekStr, pdfBytes, []byte(bodyStr), nil
+	return lastWeekStr, pdfBytes, now, nil
 }
 
 func jsonHeaders(req *http.Request) {
@@ -327,16 +367,16 @@ func main() {
 
 	// Get the PDF report.
 	lastWeek := ""
+	var now time.Time
 	var pdfBytes []byte
-	var reqBody []byte
-	if lastWeek, pdfBytes, reqBody, err = pdf(ctx, client, token, workspace); err != nil {
+	if lastWeek, pdfBytes, now, err = pdf(ctx, client, token, workspace); err != nil {
 		l.Fatalln(err.Error())
 	}
 
 	// Get the total amount billable as a string.
 	billable := ""
 	sendBill := false
-	if billable, sendBill, err = billTotal(ctx, client, reqBody, token, workspace); err != nil {
+	if billable, sendBill, err = billTotal(ctx, client, now, token, workspace); err != nil {
 		l.Fatalln(err.Error())
 	}
 
