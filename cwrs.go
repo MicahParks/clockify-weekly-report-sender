@@ -298,7 +298,7 @@ func main() {
 	// Grab the environment variables.
 	clockifyEmail := os.Getenv("CLOCKIFY_EMAIL")
 	clockifyPassword := os.Getenv("CLOCKIFY_PASSWORD")
-	fromEmail := os.Getenv("FROM_ENV")
+	fromEmail := os.Getenv("FROM_EMAIL")
 	smtpAddr := os.Getenv("SMTP_ADDR")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 	toEmails := os.Getenv("TO_EMAILS")
