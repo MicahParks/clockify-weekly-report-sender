@@ -180,7 +180,7 @@ func sendEmail(body []byte, from string, pdf []byte, smtpAddr, smtpPassword, sub
 		From:    from,
 		To:      to,
 		Subject: subject,
-		HTML:    body,
+		Text:    body,
 	}
 
 	// Attach the PDF.
@@ -241,11 +241,16 @@ func firstWorkspace(ctx context.Context, client *http.Client, token string) (wor
 	return first, nil
 }
 
-func pdf(ctx context.Context, client *http.Client, token, workspace string) (pdfBytes, reqBody []byte, err error) {
+func pdf(ctx context.Context, client *http.Client, token, workspace string) (lastWeekStr string, pdfBytes, reqBody []byte, err error) {
 
 	// Start last week at 0000h and end yesterday at 2400h.
-	now := time.Now().UTC().Truncate(time.Hour * 24)
+	var loc *time.Location
+	if loc, err = time.LoadLocation("America/New_York"); err != nil {
+		return "", nil, nil, err
+	}
+	now := time.Now().In(loc).Truncate(time.Hour * 24)
 	lastWeek := now.AddDate(0, 0, -7)
+	lastWeekStr = fmt.Sprintf("%d-%d-%d", lastWeek.Year(), lastWeek.Month(), lastWeek.Day())
 
 	// Create the URL.
 	url := fmt.Sprintf(pdfEndpoint, workspace)
@@ -256,7 +261,7 @@ func pdf(ctx context.Context, client *http.Client, token, workspace string) (pdf
 	// Create the request.
 	var req *http.Request
 	if req, err = http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(bodyStr)); err != nil {
-		return nil, nil, err
+		return lastWeekStr, nil, nil, err
 	}
 
 	// Set the headers for the request.
@@ -269,16 +274,16 @@ func pdf(ctx context.Context, client *http.Client, token, workspace string) (pdf
 	// Perform the request.
 	var resp *http.Response
 	if resp, err = client.Do(req); err != nil {
-		return nil, nil, err
+		return lastWeekStr, nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	// Get the body of the response.
 	if pdfBytes, err = ioutil.ReadAll(resp.Body); err != nil {
-		return nil, nil, err
+		return lastWeekStr, nil, nil, err
 	}
 
-	return pdfBytes, []byte(bodyStr), nil
+	return lastWeekStr, pdfBytes, []byte(bodyStr), nil
 }
 
 func jsonHeaders(req *http.Request) {
@@ -314,9 +319,10 @@ func main() {
 	}
 
 	// Get the PDF report.
+	lastWeek := ""
 	var pdfBytes []byte
 	var reqBody []byte
-	if pdfBytes, reqBody, err = pdf(ctx, client, token, workspace); err != nil {
+	if lastWeek, pdfBytes, reqBody, err = pdf(ctx, client, token, workspace); err != nil {
 		l.Fatalln(err.Error())
 	}
 
@@ -332,11 +338,22 @@ func main() {
 		return
 	}
 
-	sendEmail()
+	// Make the email.
+	body, subject := makeEmail(billable, lastWeek)
+
+	// Send the email.
+	if err = sendEmail([]byte(body), "", pdfBytes, "", "", subject, []string{}); err != nil {
+		l.Fatalln(err.Error())
+	}
 }
 
-func makeBody(bill string) (html []byte) {
-	htmlStr := ``
+func makeEmail(bill, lastWeek string) (body, subject string) {
+	body = fmt.Sprintf("Attached you will find the weekly report for %s.\n\nThe total for the week is: "+
+		"%s. Please validate this with the attached report.\n\n\nbeep boop.\nThis is an automated email set for every "+
+		"Monday at 0400 EST. If you'd like to make a suggestion about when it should be sent, the content, if you "+
+		"see a mistake, or if you have a suggestion, please reply to it.", lastWeek, bill)
+	subject = fmt.Sprintf("Weekly Report for %s (AUTOMATED)", lastWeek)
+	return body, subject
 }
 
 func defaultContext() (ctx context.Context, cancel context.CancelFunc) {
