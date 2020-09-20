@@ -221,7 +221,7 @@ func sendEmail(body []byte, from string, pdf []byte, smtpAddr, smtpPassword, sub
 	auth := smtp.PlainAuth("", from, smtpPassword, smtpAddr)
 
 	// Send the email.
-	if err = e.Send(smtpAddr, auth); err != nil {
+	if err = e.Send(smtpAddr+":587", auth); err != nil {
 		return err
 	}
 
