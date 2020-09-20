@@ -428,8 +428,7 @@ func main() {
 func makeEmail(bill, lastWeek string) (body, subject string) {
 	body = fmt.Sprintf("Attached you will find the weekly report for %s.\n\nThe total for the week is: "+
 		"%s. Please validate this with the attached report.\n\n\nbeep boop.\nThis is an automated email set for every "+
-		"Monday at 0400 EST. If you'd like to make a suggestion about when it should be sent, the content, if you "+
-		"see a mistake, or if you have a suggestion, please reply to it.", lastWeek, bill)
+		"Monday at 0400 EST.\n\nThis email is not monitored.", lastWeek, bill)
 	subject = fmt.Sprintf("%s Weekly Report (AUTOMATED)", lastWeek)
 	return body, subject
 }
