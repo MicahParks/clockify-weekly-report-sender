@@ -1,9 +1,13 @@
-version: '3'
+version: "3"
 services:
   cwrs:
-    command: 'python /cwrs.py /cwrs.json'
-    container_name: cwrs
-    image: micahparks/cwrs
-    volumes:
-      - ./cwrs.json:/cwrs.json
-
+    command: "/app"
+    container_name: "cwrs"
+    environment:
+      CLOCKIFY_EMAIL: ""
+      CLOCKIFY_PASSWORD: ""
+      FROM_EMAIL: ""
+      SMTP_HOST: ""
+      SMTP_PASSWORD: ""
+      TO_EMAILS: ""
+    image: "micahparks/cwrs"

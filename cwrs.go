@@ -328,10 +328,10 @@ func main() {
 	clockifyEmail := os.Getenv("CLOCKIFY_EMAIL")
 	clockifyPassword := os.Getenv("CLOCKIFY_PASSWORD")
 	fromEmail := os.Getenv("FROM_EMAIL")
-	smtpAddr := os.Getenv("SMTP_ADDR")
+	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 	toEmails := os.Getenv("TO_EMAILS")
-	for _, envVar := range []string{clockifyEmail, clockifyPassword, fromEmail, smtpAddr, smtpPassword, toEmails} {
+	for _, envVar := range []string{clockifyEmail, clockifyPassword, fromEmail, smtpHost, smtpPassword, toEmails} {
 		if envVar == "" {
 			l.Fatalln("Required environment variable empty.")
 		}
@@ -390,7 +390,7 @@ func main() {
 	body, subject := makeEmail(billable, lastWeek)
 
 	// Send the email.
-	if err = sendEmail([]byte(body), fromEmail, pdfBytes, smtpAddr, smtpPassword, subject, to); err != nil {
+	if err = sendEmail([]byte(body), fromEmail, pdfBytes, smtpHost, smtpPassword, subject, to); err != nil {
 		l.Fatalln(err.Error())
 	}
 }
