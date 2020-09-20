@@ -18,42 +18,31 @@ import (
 )
 
 const (
-	billingEndpoint = "https://global.api.clockify.me/workspaces/%s/reports/new/summary/"
-	defaultTimeout  = time.Second * 10
+	billingEndpoint = "https://reports.api.clockify.me/workspaces/%s/reports/new/summary"
+	defaultTimeout  = time.Hour
 	pdfReqBody      = `{
-    "userGroupIds": [],
-    "userIds": [],
-    "projectIds": [],
-    "clientIds": [
-      "5cfd9075a02f7a6dc1bba9c7"
-    ],
-    "taskIds": [],
-    "tagIds": [],
-    "billable": "BOTH",
-    "description": "",
-    "firstTime": true,
-    "archived": "Active",
-    "startDate": "%s",
-    "endDate": "%s",
-    "me": "TEAM",
-    "includeTimeEntries": true,
-    "zoomLevel": "week",
-    "name": "",
-    "groupingOn": true,
-    "groupedByDate": false,
-    "page": 0,
-    "sortDetailedBy": "timeAsc",
-    "count": 500,
-    "roundingOn": false,
-    "isDetailed": true,
-    "groupBy": "PROJECT",
-    "subgroupBy": "TIME_ENTRY",
-    "weeklyGroupBy": "PROJECT",
-    "weeklySubgroupBy": "TIME"
-  }`
-	pdfEndpoint       = "https://global.api.clockify.me/workspaces/%s/reports/summary"
+  "dateRangeStart": "%s",
+  "dateRangeEnd": "%s",
+  "sortOrder": "ASCENDING",
+  "description": "",
+  "rounding": false,
+  "withoutDescription": false,
+  "amountShown": "EARNED",
+  "zoomLevel": "WEEK",
+  "userLocale": "en_US",
+  "customFields": null,
+  "summaryFilter": {
+    "sortColumn": "GROUP",
+    "groups": [
+      "PROJECT",
+      "TIMEENTRY"
+    ]
+  },
+  "exportType": "PDF"
+}`
+	pdfEndpoint       = "https://reports.api.clockify.me/workspaces/%s/reports/summary"
 	tokenEndpoint     = "https://global.api.clockify.me/auth/token"
-	workspaceEndpoint = "https://global.api.clockify.me/workspaces/"
+	workspaceEndpoint = "https://global.api.clockify.me/workspaces"
 )
 
 var (
@@ -256,7 +245,7 @@ func pdf(ctx context.Context, client *http.Client, token, workspace string) (las
 	url := fmt.Sprintf(pdfEndpoint, workspace)
 
 	// Create the body as a string.
-	bodyStr := fmt.Sprintf(pdfReqBody, lastWeek.Format(time.RFC3339), now.Format(time.RFC3339))
+	bodyStr := fmt.Sprintf(pdfReqBody, lastWeek.Format("2006-01-02T15:04:05Z"), now.Format("2006-01-02T15:04:05Z"))
 
 	// Create the request.
 	var req *http.Request
@@ -353,6 +342,7 @@ func main() {
 
 	// Check to see if the bill should be sent.
 	if !sendBill {
+		l.Println("Not sending because there is nothing to bill.")
 		return
 	}
 
