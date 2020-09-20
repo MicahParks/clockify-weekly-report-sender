@@ -18,9 +18,15 @@ import (
 )
 
 const (
+
+	// billingEndpoint is the endpoint to reach out to to get the summary that has billing information.
 	billingEndpoint = "https://reports.api.clockify.me/workspaces/%s/reports/summary"
-	defaultTimeout  = time.Hour
-	billReqBody     = `{
+
+	// defaultTimeout is the default amount of time to allow for all Clockify API calls to take place.
+	defaultTimeout = time.Second * 10
+
+	// billReqBody is the body of the response to send when requesting a summary for billing.
+	billReqBody = `{
   "dateRangeStart": "%s",
   "dateRangeEnd": "%s",
   "sortOrder": "ASCENDING",
@@ -39,6 +45,8 @@ const (
     ]
   }
 }`
+
+	// pdfReqBody is the body of the response to send when requesting a PDF summary.
 	pdfReqBody = `{
   "dateRangeStart": "%s",
   "dateRangeEnd": "%s",
@@ -59,44 +67,60 @@ const (
   },
   "exportType": "PDF"
 }`
-	pdfEndpoint       = "https://reports.api.clockify.me/workspaces/%s/reports/summary"
-	tokenEndpoint     = "https://global.api.clockify.me/auth/token"
+
+	// pdfEndpoint is the endpoint to reach out to to get a PDF report.
+	pdfEndpoint = "https://reports.api.clockify.me/workspaces/%s/reports/summary"
+
+	// tokenEndpoint is the endpoint to reach out to to get an auth token.
+	tokenEndpoint = "https://global.api.clockify.me/auth/token"
+
+	// workspaceEndpoint is the endpoint to reach out to to get the user's workspaces.
 	workspaceEndpoint = "https://global.api.clockify.me/workspaces/"
 )
 
 var (
+
+	// errNoWorkspaces indicates that Clockify did not report any workspaces for this user.
 	errNoWorkspaces = errors.New("no workspaces were found")
 )
 
+// billableResponse is the response from the Clockify API containing the info from a request for a summary.
 type billableResponse struct {
 	Totals []totalResponse `json:"totals"`
 }
 
+// credentials holds the Clockify credentails.
 type credentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
+// tokenResponse is the response from the Clockify API containing the requested auth token.
 type tokenResponse struct {
 	Token string `json:"token"`
 }
 
+// workspaceResponse is the response from the Clockify API containing the user's workspaces.
 type workspaceResponse struct {
 	Memberships []membershipsResponse `json:"memberships"`
 }
 
+// membershipsResponse is the response from the Clockify API containing the user's memberships.
 type membershipsResponse struct {
 	TargetId string `json:"targetId"`
 }
 
+// totalResponse is the response from the Clockify API containing the total billable amount.
 type totalResponse struct {
 	TotalAmount float64 `json:"totalAmount"`
 }
 
+// addTokenHeader adds the Clockify API token to the request header.
 func addTokenHeader(req *http.Request, token string) {
 	req.Header.Add("X-Auth-Token", token)
 }
 
+// authToken gets the Clockify API token by logging into the Clockify API.
 func authToken(ctx context.Context, client *http.Client, email, password string) (authToken string, err error) {
 
 	// Create the credentials structure.
@@ -118,7 +142,7 @@ func authToken(ctx context.Context, client *http.Client, email, password string)
 	}
 
 	// Set the headers for the request.
-	jsonHeaders(req)
+	jsonHeader(req)
 
 	// Perform the request.
 	var resp *http.Response
@@ -141,6 +165,7 @@ func authToken(ctx context.Context, client *http.Client, email, password string)
 	return token.Token, nil
 }
 
+// billTotal gets the total amount of billable dollars from the Clockify API.
 func billTotal(ctx context.Context, client *http.Client, now time.Time, token, workspace string) (billable string, sendBill bool, err error) {
 
 	// Create the URL.
@@ -165,7 +190,7 @@ func billTotal(ctx context.Context, client *http.Client, now time.Time, token, w
 
 	// Set the headers for the request.
 	addTokenHeader(req, token)
-	jsonHeaders(req)
+	jsonHeader(req)
 
 	// Perform the request.
 	var resp *http.Response
@@ -202,6 +227,7 @@ func billTotal(ctx context.Context, client *http.Client, now time.Time, token, w
 	return "$" + fmt.Sprintf("%.2f", total), true, err
 }
 
+// sendEmail sends the email with the report attachment.
 func sendEmail(body []byte, from string, pdf []byte, smtpAddr, smtpPassword, subject string, to []string) (err error) {
 
 	// Create the email.
@@ -228,6 +254,7 @@ func sendEmail(body []byte, from string, pdf []byte, smtpAddr, smtpPassword, sub
 	return nil
 }
 
+// firstWorkspace gets the first workspace for the user from the Clockify API.
 func firstWorkspace(ctx context.Context, client *http.Client, token string) (workspace string, err error) {
 
 	// Create the request.
@@ -238,7 +265,7 @@ func firstWorkspace(ctx context.Context, client *http.Client, token string) (wor
 
 	// Set the headers for the request.
 	addTokenHeader(req, token)
-	jsonHeaders(req)
+	jsonHeader(req)
 
 	// Perform the request.
 	var resp *http.Response
@@ -270,6 +297,7 @@ func firstWorkspace(ctx context.Context, client *http.Client, token string) (wor
 	return first, nil
 }
 
+// pdf gets the PDF report from the Clockify API.
 func pdf(ctx context.Context, client *http.Client, token, workspace string) (lastWeekStr string, pdfBytes []byte, now time.Time, err error) {
 
 	// Start last week at 0000h and end yesterday at 2400h.
@@ -295,7 +323,7 @@ func pdf(ctx context.Context, client *http.Client, token, workspace string) (las
 
 	// Set the headers for the request.
 	addTokenHeader(req, token)
-	jsonHeaders(req)
+	jsonHeader(req)
 
 	// Set the URL query.
 	req.URL.Query().Add("export", "pdf")
@@ -315,7 +343,8 @@ func pdf(ctx context.Context, client *http.Client, token, workspace string) (las
 	return lastWeekStr, pdfBytes, now, nil
 }
 
-func jsonHeaders(req *http.Request) {
+// jsonHeader adds the JSON header to the request.
+func jsonHeader(req *http.Request) {
 	req.Header.Add("Content-Type", "application/json")
 }
 
@@ -350,7 +379,7 @@ func main() {
 	client := &http.Client{}
 
 	// Create a context.
-	ctx, _ := defaultContext()
+	ctx, _ := context.WithTimeout(context.Background(), defaultTimeout)
 
 	// Get an authentication token from Clockify.
 	token := ""
@@ -395,6 +424,7 @@ func main() {
 	}
 }
 
+// makeEmail creates the body and the subject of the email.
 func makeEmail(bill, lastWeek string) (body, subject string) {
 	body = fmt.Sprintf("Attached you will find the weekly report for %s.\n\nThe total for the week is: "+
 		"%s. Please validate this with the attached report.\n\n\nbeep boop.\nThis is an automated email set for every "+
@@ -402,8 +432,4 @@ func makeEmail(bill, lastWeek string) (body, subject string) {
 		"see a mistake, or if you have a suggestion, please reply to it.", lastWeek, bill)
 	subject = fmt.Sprintf("%s Weekly Report (AUTOMATED)", lastWeek)
 	return body, subject
-}
-
-func defaultContext() (ctx context.Context, cancel context.CancelFunc) {
-	return context.WithTimeout(context.Background(), defaultTimeout)
 }
