@@ -298,6 +298,24 @@ func main() {
 	// Grab the environment variables.
 	clockifyEmail := os.Getenv("CLOCKIFY_EMAIL")
 	clockifyPassword := os.Getenv("CLOCKIFY_PASSWORD")
+	fromEmail := os.Getenv("FROM_ENV")
+	smtpAddr := os.Getenv("SMTP_ADDR")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	toEmails := os.Getenv("TO_EMAILS")
+	for _, envVar := range []string{clockifyEmail, clockifyPassword, fromEmail, smtpAddr, smtpPassword, to} {
+		if envVar == "" {
+			l.Fatalln("Required environment variable empty.")
+		}
+	}
+
+	// Build the destination emails.
+	to := make([]string, 0)
+	for _, emailStr := range strings.Split(toEmails, ",") {
+		to = append(to, strings.TrimSpace(emailStr))
+	}
+	if len(to) == 0 {
+		l.Fatalln("No destination emails were set.")
+	}
 
 	// Make an HTTP client.
 	client := &http.Client{}
@@ -342,7 +360,7 @@ func main() {
 	body, subject := makeEmail(billable, lastWeek)
 
 	// Send the email.
-	if err = sendEmail([]byte(body), "", pdfBytes, "", "", subject, []string{}); err != nil {
+	if err = sendEmail([]byte(body), fromEmail, pdfBytes, smtpAddr, smtpPassword, subject, to); err != nil {
 		l.Fatalln(err.Error())
 	}
 }
