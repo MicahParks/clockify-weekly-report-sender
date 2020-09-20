@@ -225,8 +225,8 @@ func firstWorkspace(ctx context.Context, client *http.Client, token string) (wor
 	}
 
 	// Unmarshal the body into the expected structure.
-	workspaces := []workspaceResponse{}
-	if err = json.Unmarshal(body, workspaces); err != nil {
+	var workspaces []workspaceResponse
+	if err = json.Unmarshal(body, &workspaces); err != nil {
 		return "", err
 	}
 
@@ -302,7 +302,7 @@ func main() {
 	smtpAddr := os.Getenv("SMTP_ADDR")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 	toEmails := os.Getenv("TO_EMAILS")
-	for _, envVar := range []string{clockifyEmail, clockifyPassword, fromEmail, smtpAddr, smtpPassword, to} {
+	for _, envVar := range []string{clockifyEmail, clockifyPassword, fromEmail, smtpAddr, smtpPassword, toEmails} {
 		if envVar == "" {
 			l.Fatalln("Required environment variable empty.")
 		}
