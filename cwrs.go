@@ -89,7 +89,7 @@ func main() {
 	}
 
 	// Make the email.
-	body, subject := makeEmail(billable, start)
+	body, subject := bodySubject(billable, start)
 
 	// Send the email.
 	if err = sendEmail([]byte(body), fromEmail, pdfBytes, smtpHost, smtpPassword, subject, to); err != nil {
