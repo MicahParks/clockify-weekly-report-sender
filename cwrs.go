@@ -69,12 +69,6 @@ func main() {
 		l.Fatalln(err.Error())
 	}
 
-	// Get the PDF report.
-	var pdfBytes []byte
-	if pdfBytes, err = pdf(ctx, client, end, start, token, workspace); err != nil {
-		l.Fatalln(err.Error())
-	}
-
 	// Get the total amount billable as a string.
 	billable := ""
 	sendBill := false
@@ -86,6 +80,12 @@ func main() {
 	if !sendBill {
 		l.Println("Not sending because there is nothing to bill.")
 		return
+	}
+
+	// Get the PDF report.
+	var pdfBytes []byte
+	if pdfBytes, err = pdf(ctx, client, end, start, token, workspace); err != nil {
+		l.Fatalln(err.Error())
 	}
 
 	// Make the email.
