@@ -72,7 +72,7 @@ func main() {
 	// Get the total amount billable as a string.
 	billable := ""
 	sendBill := false
-	if billable, sendBill, err = billTotal(ctx, client, end, end, token, workspace); err != nil {
+	if billable, sendBill, err = billTotal(ctx, client, end, start, token, workspace); err != nil {
 		l.Fatalln(err.Error())
 	}
 
