@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+// addTokenHeader adds the Clockify API token to the request header.
+func addTokenHeader(req *http.Request, token string) {
+	req.Header.Add("X-Auth-Token", token)
+}
+
 // bodySubject creates the body and the subject of the email.
 func bodySubject(bill string, start time.Time) (body, subject string) {
 
@@ -19,11 +24,6 @@ func bodySubject(bill string, start time.Time) (body, subject string) {
 	subject = fmt.Sprintf("%s Weekly Report (AUTOMATED)", startDateStr)
 
 	return body, subject
-}
-
-// addTokenHeader adds the Clockify API token to the request header.
-func addTokenHeader(req *http.Request, token string) {
-	req.Header.Add("X-Auth-Token", token)
 }
 
 // jsonHeader adds the JSON header to the request.
