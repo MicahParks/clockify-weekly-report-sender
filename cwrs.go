@@ -12,7 +12,7 @@ import (
 const (
 
 	// defaultTimeout is the default amount of time to allow for all Clockify API calls to take place.
-	defaultTimeout = time.Second * 10
+	defaultTimeout = time.Minute
 )
 
 func main() {

@@ -14,7 +14,7 @@ const (
 	tokenEndpoint = "https://global.api.clockify.me/auth/token"
 )
 
-// credentials holds the Clockify credentails.
+// credentials holds the Clockify credentials.
 type credentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
